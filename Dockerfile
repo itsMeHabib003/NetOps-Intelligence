@@ -10,19 +10,18 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
-# Install backend dependencies
-COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
+# 1. Copy and install dependencies directly into the root context
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Python backend code
-COPY backend/ ./backend/
+# 2. Copy the CONTENTS of the backend folder directly into /app
+# This ensures main.py is sitting directly at /app/main.py
+COPY backend/ .
 
-# Copy the built frontend static files directly into the backend public folder
-# (If your frontend framework uses 'build' instead of 'dist', change 'dist' to 'build' below)
-COPY --from=frontend-build /app/frontend/dist ./backend/public
+# 3. Copy the built frontend static files into a public folder at /app/public
+COPY --from=frontend-build /app/frontend/dist ./public
 
 EXPOSE 8080
 
-# Command to start your Python server (assuming FastAPI/Uvicorn, adjust if using Flask)
-ENV PYTHONPATH=/app
-CMD ["uvicorn", "main:app", "--app-dir", "backend", "--host", "0.0.0.0", "--port", "8080"]
+# 4. Start Uvicorn directly looking for main.py in the current directory
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
